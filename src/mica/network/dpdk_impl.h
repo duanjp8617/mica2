@@ -313,6 +313,17 @@ DPDK<StaticConfig>::get_endpoint_info(EndpointId eid) const {
   return endpoint_info_[eid];
 }
 
+// Intel's i40e PMD default RSS key
+static const std::vector<uint8_t> default_rsskey_52bytes = {
+    0x44, 0x39, 0x79, 0x6b, 0xb5, 0x4c, 0x50, 0x23,
+    0xb6, 0x75, 0xea, 0x5b, 0x12, 0x4f, 0x9f, 0x30,
+    0xb8, 0xa2, 0xc0, 0x3d, 0xdf, 0xdc, 0x4d, 0x02,
+    0xa0, 0x8c, 0x9b, 0x33, 0x4a, 0xf6, 0x4a, 0x4c,
+    0x05, 0xc6, 0xfa, 0x34, 0x39, 0x58, 0xd8, 0x55,
+    0x7d, 0x99, 0x58, 0x3a, 0xe1, 0x38, 0xc9, 0x2e,
+    0x81, 0x15, 0x03, 0x66
+};
+
 template <class StaticConfig>
 void DPDK<StaticConfig>::start() {
   assert(!started_);
@@ -325,33 +336,10 @@ void DPDK<StaticConfig>::start() {
   ::mica::util::memset(&eth_rx_conf, 0, sizeof(eth_rx_conf));
   ::mica::util::memset(&eth_tx_conf, 0, sizeof(eth_tx_conf));
 
-  // Force 10 Gbps.
-  // TODO: We may want to allow higher link speeds.
-  //eth_conf.link_speeds = ETH_LINK_SPEED_10G;
-  eth_conf.rxmode.mq_mode = ETH_MQ_RX_NONE;
-  eth_conf.rxmode.max_rx_pkt_len = ETHER_MAX_LEN;
-  eth_conf.rxmode.hw_vlan_filter = 1;
-  eth_conf.rxmode.hw_vlan_strip = 1;
-  eth_conf.txmode.mq_mode = ETH_MQ_TX_NONE;
-  eth_conf.fdir_conf.mode = RTE_FDIR_MODE_PERFECT;
-  eth_conf.fdir_conf.pballoc = RTE_FDIR_PBALLOC_64K;
-  eth_conf.fdir_conf.status = RTE_FDIR_NO_REPORT_STATUS;
-  eth_conf.fdir_conf.mask.dst_port_mask = 0xffff;
-  eth_conf.fdir_conf.drop_queue = 0;
-
-  eth_rx_conf.rx_thresh.pthresh = 8;
-  eth_rx_conf.rx_thresh.hthresh = 0;
-  eth_rx_conf.rx_thresh.wthresh = 0;
-  eth_rx_conf.rx_free_thresh = 0;
-  eth_rx_conf.rx_drop_en = 0;
-
-  eth_tx_conf.tx_thresh.pthresh = 32;
-  eth_tx_conf.tx_thresh.hthresh = 0;
-  eth_tx_conf.tx_thresh.wthresh = 0;
-  eth_tx_conf.tx_free_thresh = 0;
-  eth_tx_conf.tx_rs_thresh = 0;
   eth_tx_conf.txq_flags = (ETH_TXQ_FLAGS_NOMULTSEGS | ETH_TXQ_FLAGS_NOREFCOUNT |
                            ETH_TXQ_FLAGS_NOMULTMEMP | ETH_TXQ_FLAGS_NOOFFLOADS);
+  eth_conf.rxmode.mq_mode = ETH_MQ_RX_RSS;
+  eth_conf.rx_adv_conf.rss_conf.rss_hf = ETH_RSS_PROTO_MASK;
 
   int ret;
 
