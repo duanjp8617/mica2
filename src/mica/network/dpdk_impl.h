@@ -336,14 +336,63 @@ void DPDK<StaticConfig>::start() {
   ::mica::util::memset(&eth_rx_conf, 0, sizeof(eth_rx_conf));
   ::mica::util::memset(&eth_tx_conf, 0, sizeof(eth_tx_conf));
 
+#if 0
+  // Force 10 Gbps.
+  // TODO: We may want to allow higher link speeds.
+  //eth_conf.link_speeds = ETH_LINK_SPEED_10G;
+  eth_conf.rxmode.mq_mode = ETH_MQ_RX_NONE;
+  eth_conf.rxmode.max_rx_pkt_len = ETHER_MAX_LEN;
+  eth_conf.rxmode.hw_vlan_filter = 1;
+  eth_conf.rxmode.hw_vlan_strip = 1;
+  eth_conf.txmode.mq_mode = ETH_MQ_TX_NONE;
+  eth_conf.fdir_conf.mode = RTE_FDIR_MODE_PERFECT;
+  eth_conf.fdir_conf.pballoc = RTE_FDIR_PBALLOC_64K;
+  eth_conf.fdir_conf.status = RTE_FDIR_NO_REPORT_STATUS;
+  eth_conf.fdir_conf.mask.dst_port_mask = 0xffff;
+  eth_conf.fdir_conf.drop_queue = 0;
+
+  eth_rx_conf.rx_thresh.pthresh = 8;
+  eth_rx_conf.rx_thresh.hthresh = 0;
+  eth_rx_conf.rx_thresh.wthresh = 0;
+  eth_rx_conf.rx_free_thresh = 0;
+  eth_rx_conf.rx_drop_en = 0;
+
+  eth_tx_conf.tx_thresh.pthresh = 32;
+  eth_tx_conf.tx_thresh.hthresh = 0;
+  eth_tx_conf.tx_thresh.wthresh = 0;
+  eth_tx_conf.tx_free_thresh = 0;
+  eth_tx_conf.tx_rs_thresh = 0;
   eth_tx_conf.txq_flags = (ETH_TXQ_FLAGS_NOMULTSEGS | ETH_TXQ_FLAGS_NOREFCOUNT |
                            ETH_TXQ_FLAGS_NOMULTMEMP | ETH_TXQ_FLAGS_NOOFFLOADS);
-  eth_conf.rxmode.mq_mode = ETH_MQ_RX_RSS;
-  eth_conf.rx_adv_conf.rss_conf.rss_hf = ETH_RSS_PROTO_MASK;
+#endif
+  // patch by djp
+  std::vector<uint8_t> rss_key = default_rsskey_52bytes;
 
+  eth_tx_conf.txq_flags = (ETH_TXQ_FLAGS_NOMULTSEGS | ETH_TXQ_FLAGS_NOREFCOUNT |
+                           ETH_TXQ_FLAGS_NOMULTMEMP | ETH_TXQ_FLAGS_NOOFFLOADS);
+  if(endpoint_count_>1){
+	  eth_conf.rxmode.mq_mode = ETH_MQ_RX_RSS;
+	  eth_conf.rx_adv_conf.rss_conf.rss_hf = ETH_RSS_PROTO_MASK;
+	  eth_conf.rx_adv_conf.rss_conf.rss_key = const_cast<uint8_t *>(rss_key.data());
+	  eth_conf.rx_adv_conf.rss_conf.rss_key_len = 52;
+  }
+  else{
+	  eth_conf.rxmode.mq_mode = ETH_MQ_RX_NONE;
+  }
+
+  eth_conf.rxmode.hw_vlan_strip = 1;
+  eth_conf.rxmode.hw_strip_crc = 1;
+  // end patch
   int ret;
 
   for (uint16_t port_id = 0; port_id < ports_.size(); port_id++) {
+    // patch by djp
+	rte_eth_dev_info dev_info;
+	rte_eth_dev_info_get(port_id, &dev_info);
+	eth_rx_conf = dev_info.default_rxconf;
+	eth_tx_conf = dev_info.default_txconf;
+	// end patch
+
     if (!ports_[port_id].valid) continue;
     if (ports_[port_id].next_available_queue_id == 0) continue;
 
@@ -453,7 +502,7 @@ void DPDK<StaticConfig>::start() {
   for (uint16_t port_id = 0; port_id < ports_.size(); port_id++) {
     if (!ports_[port_id].valid) continue;
     if (ports_[port_id].next_available_queue_id == 0) continue;
-
+#if 0
     for (uint16_t eid = 0; eid < endpoint_count_; eid++) {
       if (endpoint_info_[eid].port_id != port_id) continue;
       auto queue_id = endpoint_info_[eid].queue_id;
@@ -480,7 +529,41 @@ void DPDK<StaticConfig>::start() {
         return;
       }
     }
+#endif
+    // patch by djp
+    if(endpoint_count_>1){
+    	if (!rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_HASH)) {
+			printf("Port %d: HASH FILTER configuration is supported\n", port_id);
+
+			// Setup HW touse the TOEPLITZ hash function as an RSS hash function
+			struct rte_eth_hash_filter_info info = {};
+
+			info.info_type = RTE_ETH_HASH_FILTER_GLOBAL_CONFIG;
+			info.info.global_conf.hash_func = RTE_ETH_HASH_FUNCTION_TOEPLITZ;
+
+			if (rte_eth_dev_filter_ctrl(port_id, RTE_ETH_FILTER_HASH,
+										RTE_ETH_FILTER_SET, &info) < 0) {
+				rte_exit(EXIT_FAILURE, "Cannot set hash function on a port %d\n", port_id);
+			}
+		}
+
+    	int reta_conf_size = 512 / RTE_RETA_GROUP_SIZE;
+    	rte_eth_rss_reta_entry64 reta_conf[reta_conf_size];
+    	unsigned i = 0;
+		for (auto& x : reta_conf) {
+			x.mask = ~0ULL;
+			for (auto& r: x.reta) {
+				r = i++ % endpoint_count_;
+			}
+		}
+
+		if (rte_eth_dev_rss_reta_update(port_id, reta_conf, 512)) {
+			rte_exit(EXIT_FAILURE, "Port %d: Failed to update an RSS indirection table", port_id);
+		}
+    }
+    //patch by djp
   }
+
 
   started_ = true;
 }
