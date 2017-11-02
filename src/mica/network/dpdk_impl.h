@@ -567,7 +567,7 @@ void DPDK<StaticConfig>::start() {
 		for (auto& x : reta_conf) {
 			x.mask = ~0ULL;
 			for (auto& r: x.reta) {
-				r = i++ % endpoint_count_;
+				r = i++ % queue_count;
 			}
 		}
 
