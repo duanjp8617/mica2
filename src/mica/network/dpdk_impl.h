@@ -388,7 +388,7 @@ void DPDK<StaticConfig>::start() {
   for (uint16_t port_id = 0; port_id < ports_.size(); port_id++) {
     // patch by djp
 	rte_eth_dev_info dev_info;
-	rte_eth_dev_info_get(port_id, &dev_info);
+	rte_eth_dev_info_get(static_cast<uint8_t>(port_id), &dev_info);
 	eth_rx_conf = dev_info.default_rxconf;
 	eth_tx_conf = dev_info.default_txconf;
 	// end patch
@@ -532,7 +532,7 @@ void DPDK<StaticConfig>::start() {
 #endif
     // patch by djp
     if(endpoint_count_>1){
-    	if (!rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_HASH)) {
+    	if (!rte_eth_dev_filter_supported(static_cast<uint8_t>(port_id), RTE_ETH_FILTER_HASH)) {
 			printf("Port %d: HASH FILTER configuration is supported\n", port_id);
 
 			// Setup HW touse the TOEPLITZ hash function as an RSS hash function
@@ -541,7 +541,7 @@ void DPDK<StaticConfig>::start() {
 			info.info_type = RTE_ETH_HASH_FILTER_GLOBAL_CONFIG;
 			info.info.global_conf.hash_func = RTE_ETH_HASH_FUNCTION_TOEPLITZ;
 
-			if (rte_eth_dev_filter_ctrl(port_id, RTE_ETH_FILTER_HASH,
+			if (rte_eth_dev_filter_ctrl(static_cast<uint8_t>(port_id), RTE_ETH_FILTER_HASH,
 										RTE_ETH_FILTER_SET, &info) < 0) {
 				rte_exit(EXIT_FAILURE, "Cannot set hash function on a port %d\n", port_id);
 			}
@@ -549,7 +549,7 @@ void DPDK<StaticConfig>::start() {
 
     	int reta_conf_size = 512 / RTE_RETA_GROUP_SIZE;
     	rte_eth_rss_reta_entry64 reta_conf[reta_conf_size];
-    	unsigned i = 0;
+    	uint16_t i = 0;
 		for (auto& x : reta_conf) {
 			x.mask = ~0ULL;
 			for (auto& r: x.reta) {
@@ -557,7 +557,7 @@ void DPDK<StaticConfig>::start() {
 			}
 		}
 
-		if (rte_eth_dev_rss_reta_update(port_id, reta_conf, 512)) {
+		if (rte_eth_dev_rss_reta_update(static_cast<uint8_t>(port_id), reta_conf, 512)) {
 			rte_exit(EXIT_FAILURE, "Port %d: Failed to update an RSS indirection table", port_id);
 		}
     }
