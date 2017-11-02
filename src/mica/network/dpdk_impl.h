@@ -327,7 +327,7 @@ static const std::vector<uint8_t> default_rsskey_52bytes = {
 template <class StaticConfig>
 void DPDK<StaticConfig>::start() {
   assert(!started_);
-
+#if 0
   rte_eth_conf eth_conf;
   rte_eth_rxconf eth_rx_conf;
   rte_eth_txconf eth_tx_conf;
@@ -336,7 +336,6 @@ void DPDK<StaticConfig>::start() {
   ::mica::util::memset(&eth_rx_conf, 0, sizeof(eth_rx_conf));
   ::mica::util::memset(&eth_tx_conf, 0, sizeof(eth_tx_conf));
 
-#if 0
   // Force 10 Gbps.
   // TODO: We may want to allow higher link speeds.
   //eth_conf.link_speeds = ETH_LINK_SPEED_10G;
@@ -366,33 +365,11 @@ void DPDK<StaticConfig>::start() {
                            ETH_TXQ_FLAGS_NOMULTMEMP | ETH_TXQ_FLAGS_NOOFFLOADS);
 #endif
   // patch by djp
-  std::vector<uint8_t> rss_key = default_rsskey_52bytes;
 
-  eth_tx_conf.txq_flags = (ETH_TXQ_FLAGS_NOMULTSEGS | ETH_TXQ_FLAGS_NOREFCOUNT |
-                           ETH_TXQ_FLAGS_NOMULTMEMP | ETH_TXQ_FLAGS_NOOFFLOADS);
-  if(endpoint_count_>1){
-	  eth_conf.rxmode.mq_mode = ETH_MQ_RX_RSS;
-	  eth_conf.rx_adv_conf.rss_conf.rss_hf = ETH_RSS_PROTO_MASK;
-	  eth_conf.rx_adv_conf.rss_conf.rss_key = const_cast<uint8_t *>(rss_key.data());
-	  eth_conf.rx_adv_conf.rss_conf.rss_key_len = 52;
-  }
-  else{
-	  eth_conf.rxmode.mq_mode = ETH_MQ_RX_NONE;
-  }
-
-  eth_conf.rxmode.hw_vlan_strip = 1;
-  eth_conf.rxmode.hw_strip_crc = 1;
   // end patch
   int ret;
 
   for (uint16_t port_id = 0; port_id < ports_.size(); port_id++) {
-    // patch by djp
-	rte_eth_dev_info dev_info;
-	rte_eth_dev_info_get(static_cast<uint8_t>(port_id), &dev_info);
-	eth_rx_conf = dev_info.default_rxconf;
-	eth_tx_conf = dev_info.default_txconf;
-	// end patch
-
     if (!ports_[port_id].valid) continue;
     if (ports_[port_id].next_available_queue_id == 0) continue;
 
@@ -400,6 +377,38 @@ void DPDK<StaticConfig>::start() {
     for (uint16_t eid = 0; eid < endpoint_count_; eid++)
       if (endpoint_info_[eid].port_id == port_id) queue_count++;
     if (queue_count == 0) continue;
+
+    // patch by djp
+	rte_eth_conf eth_conf;
+	rte_eth_rxconf eth_rx_conf;
+	rte_eth_txconf eth_tx_conf;
+
+	::mica::util::memset(&eth_conf, 0, sizeof(eth_conf));
+	::mica::util::memset(&eth_rx_conf, 0, sizeof(eth_rx_conf));
+	::mica::util::memset(&eth_tx_conf, 0, sizeof(eth_tx_conf));
+
+	std::vector<uint8_t> rss_key = default_rsskey_52bytes;
+
+	eth_tx_conf.txq_flags = (ETH_TXQ_FLAGS_NOMULTSEGS | ETH_TXQ_FLAGS_NOREFCOUNT |
+							 ETH_TXQ_FLAGS_NOMULTMEMP | ETH_TXQ_FLAGS_NOOFFLOADS);
+	if(queue_count>1){
+	  eth_conf.rxmode.mq_mode = ETH_MQ_RX_RSS;
+	  eth_conf.rx_adv_conf.rss_conf.rss_hf = ETH_RSS_PROTO_MASK;
+	  eth_conf.rx_adv_conf.rss_conf.rss_key = const_cast<uint8_t *>(rss_key.data());
+	  eth_conf.rx_adv_conf.rss_conf.rss_key_len = 52;
+	}
+	else{
+	  eth_conf.rxmode.mq_mode = ETH_MQ_RX_NONE;
+	}
+
+	eth_conf.rxmode.hw_vlan_strip = 1;
+	eth_conf.rxmode.hw_strip_crc = 1;
+
+	rte_eth_dev_info dev_info;
+	rte_eth_dev_info_get(static_cast<uint8_t>(port_id), &dev_info);
+	eth_rx_conf = dev_info.default_rxconf;
+	eth_tx_conf = dev_info.default_txconf;
+	// end patch
 
     if (StaticConfig::kVerbose)
       printf("configuring port %" PRIu16 "...\n", port_id);
@@ -531,7 +540,12 @@ void DPDK<StaticConfig>::start() {
     }
 #endif
     // patch by djp
-    if(endpoint_count_>1){
+    uint16_t queue_count = 0;
+    for (uint16_t eid = 0; eid < endpoint_count_; eid++)
+      if (endpoint_info_[eid].port_id == port_id) queue_count++;
+    if (queue_count == 0) continue;
+
+    if(queue_count>1){
     	if (!rte_eth_dev_filter_supported(static_cast<uint8_t>(port_id), RTE_ETH_FILTER_HASH)) {
 			printf("Port %d: HASH FILTER configuration is supported\n", port_id);
 
