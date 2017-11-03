@@ -22,6 +22,9 @@ Result LTable<StaticConfig>::set(uint64_t key_hash, const char* key,
   uint32_t bucket_index = calc_bucket_index(key_hash);
   uint16_t tag = calc_tag(key_hash);
 
+  printf("The buket_index is %" PRIu32 "\n", bucket_index);
+  printf("The tag is %" PRIu16 "\n", tag);
+
   Bucket* bucket = buckets_ + bucket_index;
 
   bool overwriting;
@@ -31,6 +34,7 @@ Result LTable<StaticConfig>::set(uint64_t key_hash, const char* key,
   Bucket* located_bucket;
   size_t item_index =
       find_item_index(bucket, key_hash, tag, key, key_length, &located_bucket);
+  printf("Intial item_index is %zu\n", item_index);
 
   if (item_index != StaticConfig::kBucketSize) {
     if (!overwrite) {
