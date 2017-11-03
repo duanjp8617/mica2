@@ -240,17 +240,17 @@ size_t LTable<StaticConfig>::find_item_index(
       const Item* item = reinterpret_cast<const Item*>(
           pool_->get_item(get_item_offset(item_vec)));
 
-      // printf("item->key_hash %lu\n", item->key_hash);
-      // printf("key_hash %lu\n", key_hash);
+      printf("item->key_hash %lu\n", item->key_hash);
+      printf("key_hash %lu\n", key_hash);
 
       if (item->key_hash != key_hash) continue;
 
-      // printf("item->key_length %u\n", get_key_length(item->kv_length_vec));
-      // printf("key_length %u\n", key_length);
+      printf("item->key_length %u\n", get_key_length(item->kv_length_vec));
+      printf("key_length %u\n", key_length);
 
-      // printf("item->data %lu\n",
-      //        *reinterpret_cast<const uint64_t*>(item->data));
-      // printf("key %lu\n", *reinterpret_cast<const uint64_t*>(key));
+      printf("item->data %lu\n",
+             *reinterpret_cast<const uint64_t*>(item->data));
+      printf("key %lu\n", *reinterpret_cast<const uint64_t*>(key));
 
       // a key comparison reads up to min(source key length and destination
       // key length), which is always safe to do
@@ -262,7 +262,7 @@ size_t LTable<StaticConfig>::find_item_index(
       // doing
       // more jobs with this result
 
-      if (StaticConfig::kVerbose) printf("find item index: %zu\n", item_index);
+      printf("find item index: %zu\n", item_index);
       *located_bucket = current_bucket;
       return item_index;
     }
@@ -271,7 +271,7 @@ size_t LTable<StaticConfig>::find_item_index(
     current_bucket = get_extra_bucket(current_bucket->next_extra_bucket_index);
   }
 
-  if (StaticConfig::kVerbose) printf("could not find item index\n");
+  printf("could not find item index\n");
 
   *located_bucket = nullptr;
   return StaticConfig::kBucketSize;

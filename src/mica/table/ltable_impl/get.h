@@ -20,6 +20,9 @@ Result LTable<StaticConfig>::get(uint64_t key_hash, const char* key,
   uint32_t bucket_index = calc_bucket_index(key_hash);
   uint16_t tag = calc_tag(key_hash);
 
+  printf("The buket_index is %" PRIu32 "\n", bucket_index);
+  printf("The tag is %" PRIu16 "\n", tag);
+
   const Bucket* bucket = buckets_ + bucket_index;
 
   bool partial_value;
