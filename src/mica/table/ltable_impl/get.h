@@ -12,6 +12,11 @@ Result LTable<StaticConfig>::get(uint64_t key_hash, const char* key,
                                  bool allow_mutation) const {
   assert(key_length <= kMaxKeyLength);
 
+  printf("In set\n");
+  printf("key_hash: %" PRIu64 "\n", key_hash);
+  printf("key_length: %zu\n", key_length);
+  printf("in_value_length: %zu\n", in_value_length);
+
   uint32_t bucket_index = calc_bucket_index(key_hash);
   uint16_t tag = calc_tag(key_hash);
 
@@ -28,6 +33,7 @@ Result LTable<StaticConfig>::get(uint64_t key_hash, const char* key,
     if (item_index == StaticConfig::kBucketSize) {
       if (version_start != read_version_end(bucket)) continue;
       stat_inc(&Stats::get_notfound);
+      printf("First kNotFound\n");
       return Result::kNotFound;
     }
 
@@ -87,6 +93,7 @@ Result LTable<StaticConfig>::get(uint64_t key_hash, const char* key,
       }
 
       stat_inc(&Stats::get_notfound);
+      printf("Second kNotFound\n");
       return Result::kNotFound;
     }
 

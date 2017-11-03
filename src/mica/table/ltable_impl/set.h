@@ -11,6 +11,14 @@ Result LTable<StaticConfig>::set(uint64_t key_hash, const char* key,
   assert(key_length <= kMaxKeyLength);
   assert(value_length <= kMaxValueLength);
 
+  printf("In set\n");
+  printf("key_hash: %" PRIu64 "\n", key_hash);
+  printf("key_length: %zu\n", key_length);
+  printf("value_length: %zu\n", value_length);
+  if(overwrite){
+	  printf("Overwrite enabled\n");
+  }
+
   uint32_t bucket_index = calc_bucket_index(key_hash);
   uint16_t tag = calc_tag(key_hash);
 
@@ -29,6 +37,8 @@ Result LTable<StaticConfig>::set(uint64_t key_hash, const char* key,
       stat_inc(&Stats::set_nooverwrite);
 
       unlock_bucket(bucket);
+      printf("Result is kExists\n");
+      printf("Finish set\n");
       return Result::kExists;  // already exist but cannot overwrite
     } else {
       overwriting = true;
@@ -54,6 +64,8 @@ Result LTable<StaticConfig>::set(uint64_t key_hash, const char* key,
         // no more space
         // TODO: add a statistics entry
         unlock_bucket(bucket);
+        printf("Result is kInsufficientSpace\n");
+		printf("Finish set\n");
         return Result::kInsufficientSpace;
       }
     }
@@ -90,7 +102,8 @@ Result LTable<StaticConfig>::set(uint64_t key_hash, const char* key,
           pool_->unlock();
 
         unlock_bucket(bucket);
-
+        printf("Result is kSuccess\n");
+	    printf("Finish set\n");
         return Result::kSuccess;
       }
     }
@@ -101,6 +114,8 @@ Result LTable<StaticConfig>::set(uint64_t key_hash, const char* key,
     // no more space
     // TODO: add a statistics entry
     unlock_bucket(bucket);
+    printf("Result is kInsufficientSpace\n");
+    printf("Finish set\n");
     return Result::kInsufficientSpace;
   }
   uint64_t new_tail;
@@ -148,7 +163,8 @@ Result LTable<StaticConfig>::set(uint64_t key_hash, const char* key,
   }
 
   stat_inc(&Stats::count);
-
+  printf("Result is kSuccess\n");
+  printf("Finish set\n");
   return Result::kSuccess;
 }
 }
