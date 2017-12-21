@@ -205,12 +205,11 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
     for(uint16_t i=0; i<count; i++){
     		PacketBuffer* buf = bufs[i];
     		char* data_start = buf->get_data();
-    		*data_start = 1;
-    		rte_pktmbuf_free(buf);
-    		printf("Receiving!.\n");
+    		char byte = *data_start;
+    		*data_start = byte;
     }
 
-    continue;
+    // continue;
 
     if (count > 0) {
       if (StaticConfig::kVerbose)
