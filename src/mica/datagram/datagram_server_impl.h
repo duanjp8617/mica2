@@ -206,7 +206,7 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
     		PacketBuffer* buf = bufs[i];
     		char* data_start = buf->get_data();
     		*data_start = 1;
-    		release(buf);
+    		rte_pktmbuf_free(buf);
     }
 
     continue;
