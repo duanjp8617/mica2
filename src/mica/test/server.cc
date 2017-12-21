@@ -7,14 +7,14 @@ struct DPDKConfig : public ::mica::network::BasicDPDKConfig {
 
 struct PartitionsConfig : public ::mica::processor::BasicPartitionsConfig {
   static constexpr bool kSkipPrefetchingForRecentKeyHashes = false;
-  // static constexpr bool kVerbose = true;
+  static constexpr bool kVerbose = true;
 };
 
 struct DatagramServerConfig
     : public ::mica::datagram::BasicDatagramServerConfig {
   typedef ::mica::processor::Partitions<PartitionsConfig> Processor;
   typedef ::mica::network::DPDK<DPDKConfig> Network;
-  // static constexpr bool kVerbose = true;
+  static constexpr bool kVerbose = true;
 };
 
 typedef ::mica::datagram::DatagramServer<DatagramServerConfig> Server;

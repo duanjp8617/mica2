@@ -63,6 +63,7 @@ void memset(T* dest, int c, size_t n) {
 
 template <int Alignment, typename T1, typename T2>
 void memcpy(T1* dest, const T2* src, size_t n) {
+  printf("memcpy n=%zu.\n", n);
   assert(n == ::mica::util::roundup<Alignment>(n));
   assert(reinterpret_cast<size_t>(dest) % Alignment == 0);
   assert(reinterpret_cast<size_t>(src) % Alignment == 0);
