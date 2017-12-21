@@ -202,6 +202,15 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
         network_->receive(rx_tx_state.eid, bufs.data(), StaticConfig::kRXBurst);
     uint64_t now = stopwatch_.now();
 
+    for(uint16_t i=0; i<count; i++){
+    		PacketBuffer* buf = bufs[i];
+    		char* data_start = buf->get_data();
+    		*data_start = 1;
+    		release(buf);
+    }
+
+    continue;
+
     if (count > 0) {
       if (StaticConfig::kVerbose)
         printf("lcore %2zu: received %" PRIu16 " packets\n",
