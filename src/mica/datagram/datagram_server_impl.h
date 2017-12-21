@@ -244,7 +244,7 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
 		while(
 				(reinterpret_cast<const char*>(h_) + sizeof(RequestHeader) +
 			            ::mica::util::roundup<8>(key_len) +
-			            ::mica::util::roundup<8>(val_len) - buf_->get_data() <=
+			            ::mica::util::roundup<8>(val_len) - buf_->get_data() <
 			        len)) {
 			h_ = reinterpret_cast<const RequestHeader*>(
 			  reinterpret_cast<const char*>(h_) + sizeof(RequestHeader) +
