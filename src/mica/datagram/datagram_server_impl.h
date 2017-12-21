@@ -207,6 +207,7 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
     		char* data_start = buf->get_data();
     		*data_start = 1;
     		rte_pktmbuf_free(buf);
+    		printf("Receiving!.\n");
     }
 
     continue;
