@@ -237,7 +237,7 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
 		size_t key_len = h_->kv_length_vec >> 24;
 		size_t val_len = h_->kv_length_vec & ((1 << 24) - 1);
 
-		printf("key_len=%zu, val_len=%zu.\n");
+		printf("key_len=%zu, val_len=%zu.\n", key_len, val_len);
 
 		initial += sizeof(RequestHeader) + ::mica::util::roundup<8>(key_len) + ::mica::util::roundup<8>(val_len);
 
@@ -252,7 +252,7 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
 			  ::mica::util::roundup<8>(val_len));
 			key_len = h_->kv_length_vec >> 24;
 			val_len = h_->kv_length_vec & ((1 << 24) - 1);
-			printf("key_len=%zu, val_len=%zu.\n");
+			printf("key_len=%zu, val_len=%zu.\n", key_len, val_len);
 			initial += sizeof(RequestHeader) + ::mica::util::roundup<8>(key_len) + ::mica::util::roundup<8>(val_len);
 		}
 
