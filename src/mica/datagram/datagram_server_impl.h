@@ -189,6 +189,8 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
 
   RequestAccessor ra(this, &worker_stats_[lcore_id], lcore_id);
 
+  RequestHeader rhs[1000];
+
   size_t next_index = 0;
   while (!stopping_) {
     auto& rx_tx_state = rx_tx_states[next_index];
@@ -226,7 +228,35 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
 		RequestBatchHeader* rbh = reinterpret_cast<RequestBatchHeader*>(buf_->get_data());
 
 		assert(rbh->num_requests>0);
-		printf("len=%d.\n", len);
+		const RequestHeader* h_ = nullptr;
+
+		uint16_t initial = sizeof(RequestBatchHeader);
+
+		h_ = reinterpret_cast<const RequestHeader*>(buf_->get_data() +
+		                                       sizeof(RequestBatchHeader));
+		size_t key_len = h_->kv_length_vec >> 24;
+		size_t val_len = h_->kv_length_vec & ((1 << 24) - 1);
+
+		initial += sizeof(RequestHeader) + ::mica::util::roundup<8>(key_len) + ::mica::util::roundup<8>(val_len);
+
+		while((reinterpret_cast<const char*>(h_) + sizeof(RequestHeader) -
+            buf_->get_data() <= len) ||
+				(reinterpret_cast<const char*>(h_) + sizeof(RequestHeader) +
+			            ::mica::util::roundup<8>(key_len) +
+			            ::mica::util::roundup<8>(val_len) - buf_->get_data() <=
+			        len)) {
+			h_ = reinterpret_cast<const RequestHeader*>(
+			  reinterpret_cast<const char*>(h_) + sizeof(RequestHeader) +
+			  ::mica::util::roundup<8>(key_len) +
+			  ::mica::util::roundup<8>(val_len));
+			key_len = h_->kv_length_vec >> 24;
+			val_len = h_->kv_length_vec & ((1 << 24) - 1);
+			initial += sizeof(RequestHeader) + ::mica::util::roundup<8>(key_len) + ::mica::util::roundup<8>(val_len);
+		}
+
+		printf("len=%d, initial=%d.\n", len, initial);
+		assert(len == initial);
+
     }
 
     // continue;
