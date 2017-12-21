@@ -203,10 +203,35 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
     uint64_t now = stopwatch_.now();
 
     for(uint16_t i=0; i<count; i++){
-    		PacketBuffer* buf = bufs[i];
-    		char* data_start = buf->get_data();
-    		char byte = *data_start;
-    		*data_start = byte;
+    		PacketBuffer* buf_ = bufs[i];
+    		auto mac = reinterpret_cast<const ether_hdr*>(buf_->get_data());
+		auto bh = reinterpret_cast<const RequestBatchHeader*>(buf_->get_data());
+		auto ip =
+			reinterpret_cast<const ipv4_hdr*>(buf_->get_data() + sizeof(ether_hdr));
+		auto udp = reinterpret_cast<const udp_hdr*>(
+			buf_->get_data() + sizeof(ether_hdr) + sizeof(ipv4_hdr));
+
+		auto len = buf_->get_length();
+
+		assert(len < sizeof(RequestBatchHeader));
+
+
+		assert(mac->ether_type != rte_be_to_cpu_16(ETHER_TYPE_IPv4));
+
+
+		assert(ip->version_ihl != (0x40 | 0x05)) ;
+
+
+		    assert(ip->packet_id != 0 || ip->fragment_offset != 0);
+
+		    assert(rte_be_to_cpu_16(ip->total_length) != len - sizeof(ether_hdr))
+
+		    assert(ip->next_proto_id != IPPROTO_UDP);
+
+		    assert(rte_be_to_cpu_16(udp->dgram_len) !=
+		        len - sizeof(struct ether_hdr) - sizeof(ipv4_hdr));
+
+		    assert(bh->magic != 0x78 && bh->magic != 0x79) ;
     }
 
     // continue;
