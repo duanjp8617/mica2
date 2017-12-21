@@ -213,25 +213,25 @@ void DatagramServer<StaticConfig>::worker_proc(uint16_t lcore_id) {
 
 		auto len = buf_->get_length();
 
-		assert(len < sizeof(RequestBatchHeader));
+		assert(len >= sizeof(RequestBatchHeader));
 
 
-		assert(mac->ether_type != rte_be_to_cpu_16(ETHER_TYPE_IPv4));
+		assert(mac->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4));
 
 
-		assert(ip->version_ihl != (0x40 | 0x05)) ;
+		assert(ip->version_ihl == (0x40 | 0x05)) ;
 
 
-		    assert(ip->packet_id != 0 || ip->fragment_offset != 0);
+		    assert(ip->packet_id == 0 && ip->fragment_offset == 0);
 
-		    assert(rte_be_to_cpu_16(ip->total_length) != len - sizeof(ether_hdr))
+		    assert(rte_be_to_cpu_16(ip->total_length) == len - sizeof(ether_hdr));
 
-		    assert(ip->next_proto_id != IPPROTO_UDP);
+		    assert(ip->next_proto_id == IPPROTO_UDP);
 
-		    assert(rte_be_to_cpu_16(udp->dgram_len) !=
+		    assert(rte_be_to_cpu_16(udp->dgram_len) ==
 		        len - sizeof(struct ether_hdr) - sizeof(ipv4_hdr));
 
-		    assert(bh->magic != 0x78 && bh->magic != 0x79) ;
+		    assert(bh->magic == 0x78 || bh->magic == 0x79) ;
     }
 
     // continue;
